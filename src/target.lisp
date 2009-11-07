@@ -21,55 +21,79 @@
 ;; (defun default-actionfn (target modifier)
 ;;   (declare (ignore target modifier)) "")
 
-(defclass target ()
-  ((name :accessor target-name
+;;; evolvable, base target class
+(defclass evolvable ()
+  ((name :accessor name
          :initarg :name)
-   (dependencies :accessor target-dependencies
+   (dependencies :accessor dependencies
                  :initarg dependencies
-                 :initform (list))))
+                 :initform nil))
+  (:documentation "Base class for all evolvables"))
 
-(defmethod initialize-instance :after ((target target) &rest initargs)
+(defmethod initialize-instance :after ((evol evolvable) &rest initargs)
+  "Also register evolvable in the evol *environment*"
   (declare (ignore initargs))
-  (setf (gethash (internify (target-name target)) *environment*) target))
+  (setf (gethash (internify (name evol)) *environment*) evol))
+
+(defgeneric evolve (evolvable)
+  (:documentation "Evolve this, whatever that may be"))
+
+; (defmethod evolve :before ((evol evolvable))
+; TODO dependencies  
 
 
-(defclass evolvable (target)
+;;; virtual class
+(defclass virtual (evolvable) ()
+  (:documentation "Virtual evolvables exist for the sole purpose of
+beautification through grouping and/or naming by having its dependencies
+evolve"))
+
+(defmethod evolve ((virt virtual)) t)
+
+
+;;; definite class
+(defclass definite (evolvable)
   ((rule :accessor rule
          :initarg :rule)
    (sourcefn :accessor sourcefn
              :initarg :sourcefn
-             :initform #'default-sourcefn)))
-
-(defgeneric evolve (evolvable))
-; (defmethod evolve :before ((evolvable evolvable))
-; TODO dependencies  
-
-
-(defclass checkable (target)
-  ((check :accessor check
-          :initarg :check)))
-
-(defmethod check-exists ((checkable checkable)) nil)
+             :initform #'default-sourcefn))
+  (:documentation "Definite evolvables define transformation rules and
+computation of their effective input(s) to evolve, possibly from some kind of
+sources"))
 
 
-(defclass evolve-checkable (evolvable checkable) ())
-(defmethod evolve :around ((ef evolve-checkable))
-  (when (not (check-exists ef))
-    (call-next-method))
-  (check-exists ef))
+;;; checkable class
+(defclass checkable (evolvable)
+   ((check :accessor check
+           :initarg :check))
+   (:documentation "Evolvables derived from checkable provide a means to pre- and
+post-validate their evolution."))
+
+(defgeneric evolved-p (checkable)
+  (:documentation "Check that given evolution has been evolved properly"))
+
+(defmethod evolve :around ((evol checkable))
+  (or (exists-p evol)
+      (call-next-method)))
 
 
-(defclass file (evolve-checkable) ())
+;;; file class
+(defclass file (definite checkable) ()
+  (:documentation "Files are targets that usually lead to evolution
+of... files. Their existence can easily be checked through their distinct
+pathnames."))
+
+(defmethod exists-p ((file file))
+  (file-exists-p (cl-fad:pathname-as-file (name file))))
 
 (defmethod evolve ((file file))
-  (run-command (rule file) :target (target-name file) :sourcefn (sourcefn file)))
-
-(defmethod check-exists ((file file))
-  (file-exists-p (cl-fad:pathname-as-file (target-name file))))
+  (run-command (rule file) :target (name file) :sourcefn (sourcefn file)))
 
 
-(defmacro deftarget (name &key (actionfn #'(lambda ())) (dependencies nil))
-  `(setf (gethash ',name *targets*)
-         (defun ,name ()
-           (mapc #'funcall ,dependencies)
-           (funcall ,actionfn))))
+;;; helpers
+;; (defmacro deftarget (name &key (actionfn #'(lambda ())) (dependencies nil))
+;;   `(setf (gethash ',name *targets*)
+;;          (defun ,name ()
+;;            (mapc #'funcall ,dependencies)
+;;            (funcall ,actionfn))))
