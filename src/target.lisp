@@ -60,7 +60,7 @@ all slot names/values as key/values from symbol list slots in object."
   ((name :reader   name
          :initarg  :name
          :initform (alexandria:required-argument :name))
-   (dependencies :reader   dependencies
+   (dependencies :accessor dependencies
                  :initarg  :dependencies
                  :initform nil)
    (env-slots :accessor env-slots
@@ -76,6 +76,8 @@ dependencies (list):
 env-slots (list):
   List of slots to lexically bind to the environment during an evolvable's
   evolution"))
+
+;; (defmethod print-object... !
 
 (defmethod initialize-instance :after ((evol evolvable) &rest initargs)
   "Also register evolvable in the evol *environment*"
@@ -102,6 +104,37 @@ evolve."))
 (defmethod evolve ((virt virtual)) t)
 
 
+;;; breeder class
+(defclass breeder (virtual)
+  ((of    :reader   :of
+          :initarg  :of
+          :initform (alexandria:required-argument :of))
+   (spawn :reader   :spawn
+          :initarg  :spawn
+          :initform (alexandria:required-argument :spawn)))
+  (:documentation "Breeders are similar to virtuals but enable mass spawning of
+evolvables they auto-depend on so depending on a breeder saves from declaring
+lots of mutual evolvables manually.
+
+[slots]
+of (symbol):
+  The subtype of evolvable to breed.
+spawn (mixed):
+  Source of spawn evolvables. Can be a function or a list."))
+
+(defmethod initialize-instance :after ((breeder breeder) &rest initargs &key &allow-other-keys)
+  (let ((of (getf initargs :of))
+        (spawn (getf initargs :spawn))
+        (spawnargs (remove-from-plist initargs :name :of :spawn)))
+    (setf (dependencies breeder)
+          (mapcar #'(lambda (name)
+                      (name
+                       (apply #'make-instance of :name name spawnargs)))
+                  (if (functionp spawn)
+                      (funcall spawn)
+                    spawn)))))
+
+
 ;;; definite class
 (defclass definite (evolvable)
   ((rule :accessor rule
@@ -119,41 +152,6 @@ rule (mixed):
 sourcefn (fn):
   The function to compute the input from other slots like e.g. target and
   name"))
-
-
-;;; generic-transformator class
-(defclass generic-transformator (definite)
-  ((rule :accessor rule
-         :initarg :rule
-         :initform (alexandria:required-argument :rule)))
-  (:documentation "Objects of this kind evolve through running an external
-program through interpolating the rule and source function contained within
-honoring common quoting rules in line with Bourne shell syntax."))
-
-(defmethod evolve ((trans generic-transformator))
-  (run-command
-   (interpolate-commandline (rule trans))
-   :target (name trans) :sourcefn (sourcefn trans)))
-
-
-;;; cl-transformator class
-(defclass cl-transformator (definite)
-  ((rule :accessor rule
-         :initarg :rule
-         :initform (alexandria:required-argument :rule)))
-  (:documentation "Evolution takes place here through running a freshly forked
-Common Lisp copy that expects rule to be a list of forms to execute in order.
-sourcefn is expected to return list of valid Common Lisp forms that will each be
-grouped as a single argument to be passed to (eval) so no special quoting aside
-from \\\" is required.
-Variable expansion is only performed against sourcefn's return forms."))
-
-(defmethod evolve ((trans cl-transformator))
-  (run-command
-   (nconc (split-commandline "sbcl --noinform --disable-debugger")
-          (cl-forms
-           (funcall (sourcefn trans) (rule trans))
-           (name trans) *environment*))))
 
 
 ;;; checkable class
@@ -188,6 +186,53 @@ creation."))
 
 (defmethod evolve :after ((exe executable))
   (run-command (interpolate-commandline "chmod +x %@" :target (name exe))))
+
+
+;;;; Generic
+;;; generic-transformator class
+(defclass generic-transformator (definite)
+  ((rule :accessor rule
+         :initarg :rule
+         :initform (alexandria:required-argument :rule)))
+  (:documentation "Objects of this kind evolve through running an external
+program through interpolating the rule and source function contained within
+honoring common quoting rules in line with Bourne shell syntax."))
+
+(defmethod evolve ((trans generic-transformator))
+  (run-command
+   (interpolate-commandline (rule trans))
+   :target (name trans) :sourcefn (sourcefn trans)))
+
+
+;;; generic class
+(defclass generic (generic-transformator file) ()
+  (:documentation "TODO"))
+
+
+;;; program class
+(defclass program (generic-transformator executable) ()
+  (:documentation "TODO"))
+
+
+;;;; Common Lisp Evolvables
+;;; cl-transformator class
+(defclass cl-transformator (definite)
+  ((rule :accessor rule
+         :initarg :rule
+         :initform (alexandria:required-argument :rule)))
+  (:documentation "Evolution takes place here through running a freshly forked
+Common Lisp copy that expects rule to be a list of forms to execute in order.
+sourcefn is expected to return list of valid Common Lisp forms that will each be
+grouped as a single argument to be passed to (eval) so no special quoting aside
+from \\\" is required.
+Variable expansion is only performed against sourcefn's return forms."))
+
+(defmethod evolve ((trans cl-transformator))
+  (run-command
+   (nconc (split-commandline "sbcl --noinform --disable-debugger")
+          (cl-forms
+           (funcall (sourcefn trans) (rule trans))
+           (name trans) *environment*))))
 
 
 ;;; cl-core class
