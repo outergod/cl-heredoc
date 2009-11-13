@@ -61,7 +61,7 @@ all slot names/values as key/values from symbol list slots in object."
          :initarg  :name
          :initform (alexandria:required-argument :name))
    (dependencies :accessor dependencies
-                 :initarg  :dependencies
+                 :initarg  :deps
                  :initform nil)
    (env-slots :accessor env-slots
               :initarg  :env-slots
@@ -77,12 +77,24 @@ env-slots (list):
   List of slots to lexically bind to the environment during an evolvable's
   evolution"))
 
-;; (defmethod print-object... !
-
 (defmethod initialize-instance :after ((evol evolvable) &rest initargs)
-  "Also register evolvable in the evol *environment*"
+  "initialize-instance :after evolvable &rest initargs => (void)
+
+Also register evolvable in the evol *environment*"
   (declare (ignore initargs))
   (setf (gethash (internify (name evol)) *environment*) evol))
+
+(defmethod print-object ((evol evolvable) stream)
+  "print-object evolvable stream => (void)
+
+Printing evolvable-derived objects must simply return their names."
+  (princ (name evol) stream))
+
+(defgeneric expand (evolvable)
+  (:documentation "expand evolvable => mixed
+
+Returns a suitable form of the evolvable for %-style rule expansion.")
+  (:method ((evol evolvable)) (name evol)))
 
 (defgeneric evolve (evolvable)
   (:documentation "Evolve this, whatever that may be"))
@@ -90,9 +102,6 @@ env-slots (list):
 (defmethod evolve :around ((evol evolvable))
   (with-slot-enhanced-environment ((env-slots evol) evol)
                                   (call-next-method)))
-
-; (defmethod evolve :before ((evol evolvable))
-; TODO dependencies  
 
 
 ;;; virtual class
@@ -123,6 +132,10 @@ spawn (mixed):
   Source of spawn evolvables. Can be a function or a list."))
 
 (defmethod initialize-instance :after ((breeder breeder) &rest initargs &key &allow-other-keys)
+  "initialize-instance :after breeder &rest initargs &key &allow-other-keys => (void)
+
+Create an evolvable :of type for each :spawn with all key arguments proxied
+but :name, :of:, :spawn and have the breeder itself auto-depend on them."
   (let ((of (getf initargs :of))
         (spawn (getf initargs :spawn))
         (spawnargs (remove-from-plist initargs :name :of :spawn)))
@@ -133,6 +146,12 @@ spawn (mixed):
                   (if (functionp spawn)
                       (funcall spawn)
                     spawn)))))
+
+(defmethod expand ((breeder breeder))
+  "expand breeder => list
+
+Breeders expand to a list of their dependencies' names."
+  (dependencies breeder))
 
 
 ;;; definite class
