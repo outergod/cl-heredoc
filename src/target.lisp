@@ -28,7 +28,7 @@ an additional \"--eval\" element string."
             (nconc forms (list "--eval"
                                (interpolate-argument
                                 (if (listp form)
-                                    (format nil "(~a)" (deflate-string form))
+                                    (format nil "~s" form)
                                   form)
                                 target #'default-sourcefn environment)))))))
 
@@ -219,8 +219,9 @@ honoring common quoting rules in line with Bourne shell syntax."))
 
 (defmethod evolve ((trans generic-transformator))
   (run-command
-   (interpolate-commandline (rule trans))
-   :target (name trans) :sourcefn (sourcefn trans)))
+   (interpolate-commandline (rule trans)
+                            :target (name trans) :sourcefn (sourcefn trans)
+                            :environment *environment*)))
 
 
 ;;; generic class
