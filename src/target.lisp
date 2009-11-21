@@ -113,16 +113,16 @@ evolve."))
 (defmethod evolve ((virt virtual)) t)
 
 
-;;; breeder class
-(defclass breeder (virtual)
+;;; hive class
+(defclass hive (virtual)
   ((of    :reader   :of
           :initarg  :of
           :initform (alexandria:required-argument :of))
    (spawn :reader   :spawn
           :initarg  :spawn
           :initform (alexandria:required-argument :spawn)))
-  (:documentation "Breeders are similar to virtuals but enable mass spawning of
-evolvables they auto-depend on so depending on a breeder saves from declaring
+  (:documentation "Hives are similar to virtuals but enable mass spawning of
+evolvables they auto-depend on so depending on a hive saves from declaring
 lots of mutual evolvables manually.
 
 [slots]
@@ -131,15 +131,15 @@ of (symbol):
 spawn (mixed):
   Source of spawn evolvables. Can be a function or a list."))
 
-(defmethod initialize-instance :after ((breeder breeder) &rest initargs &key &allow-other-keys)
-  "initialize-instance :after breeder &rest initargs &key &allow-other-keys => (void)
+(defmethod initialize-instance :after ((hive hive) &rest initargs &key &allow-other-keys)
+  "initialize-instance :after hive &rest initargs &key &allow-other-keys => (void)
 
 Create an evolvable :of type for each :spawn with all key arguments proxied
-but :name, :of:, :spawn and have the breeder itself auto-depend on them."
+but :name, :of:, :spawn and have the hive itself auto-depend on them."
   (let ((of (getf initargs :of))
         (spawn (getf initargs :spawn))
         (spawnargs (remove-from-plist initargs :name :of :spawn)))
-    (setf (dependencies breeder)
+    (setf (dependencies hive)
           (mapcar #'(lambda (name)
                       (name
                        (apply #'make-instance of :name name spawnargs)))
@@ -147,11 +147,11 @@ but :name, :of:, :spawn and have the breeder itself auto-depend on them."
                       (funcall spawn)
                     spawn)))))
 
-(defmethod expand ((breeder breeder))
-  "expand breeder => list
+(defmethod expand ((hive hive))
+  "expand hive => list
 
-Breeders expand to a list of their dependencies' names."
-  (dependencies breeder))
+Hives expand to a list of their dependencies' names."
+  (dependencies hive))
 
 
 ;;; definite class
