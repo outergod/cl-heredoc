@@ -59,23 +59,23 @@ all slot names/values as key/values from symbol list slots in object."
 (defclass evolvable ()
   ((name :reader   name
          :initarg  :name
-         :initform (alexandria:required-argument :name))
+         :initform (alexandria:required-argument :name)
+         :documentation "The name of the evolvable, also available in evol's environment")
    (dependencies :accessor dependencies
                  :initarg  :deps
-                 :initform nil)
+                 :initform nil
+                 :documentation "List of evolvables this one depends on")
    (env-slots :accessor env-slots
               :initarg  :env-slots
-              :initform nil))
-  (:documentation "Base class for all evolvables.
-
-[slots]
-name (string):
-  The name of the evolvable, also available in evol's environment
-dependencies (list):
-  List of evolvables this one depends on
-env-slots (list):
-  List of slots to lexically bind to the environment during an evolvable's
-  evolution"))
+              :initform nil
+              :documentation "List of slots to lexically bind to the environment during evolution")
+   (hatching  :accessor hatching
+              :initform nil
+              :documentation "Whether evolution has started")
+   (hatched   :accessor hatched
+              :initform nil
+              :documentation "Whether evolution is finished"))
+  (:documentation "Base class for all evolvables."))
 
 (defmethod initialize-instance :after ((evol evolvable) &rest initargs)
   "initialize-instance :after evolvable &rest initargs => (void)
@@ -99,6 +99,12 @@ Returns a suitable form of the evolvable for %-style rule expansion.")
 (defgeneric evolve (evolvable)
   (:documentation "Evolve this, whatever that may be"))
 
+(defmethod evolve :before ((evol evolvable))
+  (setf (hatching evol) t))
+
+(defmethod evolve :after ((evol evolvable))
+  (setf (hatched evol) t))
+
 (defmethod evolve :around ((evol evolvable))
   (with-slot-enhanced-environment ((env-slots evol) evol)
                                   (call-next-method)))
@@ -117,19 +123,15 @@ evolve."))
 (defclass hive (virtual)
   ((of    :reader   :of
           :initarg  :of
-          :initform (alexandria:required-argument :of))
+          :initform (alexandria:required-argument :of)
+          :documentation "The subtype of evolvable to harbor")
    (spawn :reader   :spawn
           :initarg  :spawn
-          :initform (alexandria:required-argument :spawn)))
+          :initform (alexandria:required-argument :spawn)
+          :documentation "Source of spawn evolvables; can be a function or a list"))
   (:documentation "Hives are similar to virtuals but enable mass spawning of
 evolvables they auto-depend on so depending on a hive saves from declaring
-lots of mutual evolvables manually.
-
-[slots]
-of (symbol):
-  The subtype of evolvable to breed.
-spawn (mixed):
-  Source of spawn evolvables. Can be a function or a list."))
+lots of mutual evolvables manually."))
 
 (defmethod initialize-instance :after ((hive hive) &rest initargs &key &allow-other-keys)
   "initialize-instance :after hive &rest initargs &key &allow-other-keys => (void)
@@ -157,20 +159,16 @@ Hives expand to a list of their dependencies' names."
 ;;; definite class
 (defclass definite (evolvable)
   ((rule :accessor rule
-         :initarg :rule)
+         :initarg :rule
+         :documentation "The rule used to evolve the definite")
    (sourcefn :accessor sourcefn
              :initarg :sourcefn
-             :initform #'default-sourcefn))
+             :initform #'default-sourcefn
+             :documentation "The function to compute the input from other slots
+like e.g. target and name"))
   (:documentation "Definite evolvables define transformation rules and
 computation of their effective input(s) to evolve, possibly from some kind of
-sources.
-
-[slots]
-rule (mixed):
-  The rule used to evolve the definite
-sourcefn (fn):
-  The function to compute the input from other slots like e.g. target and
-  name"))
+sources."))
 
 
 ;;; checkable class
@@ -262,36 +260,32 @@ Variable expansion is only performed against sourcefn's return forms."))
                              ,@(cl-load-ops rule)
                              (in-package %package)
                              (sb-ext:save-lisp-and-die "%@" :toplevel %toplevel
-                                                            :purify %purify))))
+                                                            :purify %purify)))
+             :allocation :class
+             :documentation "Preinitialized for this class; returns a list of
+forms to first load asdf, then in turn additional asdf packages from rule and
+finally a form to have sbcl create a core file.")
    (init-package :accessor init-package
                  :initarg :init-package
-                 :initform (alexandria:required-argument :init-package))
+                 :initform (alexandria:required-argument :init-package)
+                 :documentation "Package to change to. This is neccessary
+because package names cannot be quoted and furthermore without this, the
+toplevel function couldn't be defined proplery")
    (toplevel :accessor toplevel
              :initarg :toplevel
-             :initform nil)
+             :initform nil
+             :documentation "Name of the function to initally load after core
+has been loaded itself; see
+http://www.sbcl.org/manual/Saving-a-Core-Image.html")
    (purify   :accessor purify
              :initarg :purify
-             :initform t)
+             :initform t
+             :documentation "see http://www.sbcl.org/manual/Saving-a-Core-Image.html")
    (env-slots :initform (list 'init-package 'toplevel 'purify)))
   (:documentation "This evolvable enables creation of non-standalone Common Lisp
 core files. Right now, only sbcl is supported.
 Feed rule with a list of asdf-recognized package symbols to load into the
-core.
-
-[slots]
-sourcefn (fn):
-  Preinitialized for this class; returns a list of forms to first load asdf,
-  then in turn additional asdf packages from rule and finally a form to have
-  sbcl create a core file.
-init-package (symbol):
-  Package to change to. This is neccessary because package names cannot be
-  quoted and furthermore without this, the toplevel function couldn't be defined
-  proplery.
-toplevel (symbol):
-  Name of the function to initally load after core has been loaded itself;
-  see http://www.sbcl.org/manual/Saving-a-Core-Image.html
-purify (boolean):
-  see http://www.sbcl.org/manual/Saving-a-Core-Image.html"))
+core."))
 
 
 ;;; cl-exe class
@@ -304,34 +298,29 @@ purify (boolean):
                                                             :toplevel %toplevel
                                                             :purify %purify)))
              :reader sourcefn
-             :allocation :class)
+             :allocation :class
+             :documentation "Preinitialized for this class; returns a list of
+forms to first load asdf, then in turn additional asdf packages from rule and
+finally a form to have sbcl create the executable.")
    (init-package :accessor init-package
                  :initarg :init-package
-             :initform (alexandria:required-argument :init-package))
+                 :initform (alexandria:required-argument :init-package)
+                 :documentation "Package to change to. This is neccessary
+because package names cannot be quoted and furthermore without this, the
+toplevel function couldn't be defined proplery.")
    (toplevel :accessor toplevel
              :initarg :toplevel
-             :initform nil)
+             :initform nil
+             :documentation "Name of the function to initally load after core
+has been loaded itself;
+see http://www.sbcl.org/manual/Saving-a-Core-Image.html")
    (purify   :accessor purify
              :initarg :purify
-             :initform t)
+             :initform t
+             :documentation "see http://www.sbcl.org/manual/Saving-a-Core-Image.html")
    (env-slots :initform (list 'init-package 'toplevel 'purify)))
   (:documentation "In line with cl-core, a complete dump is generated but with
 the engine fully runable contained within so the resulting file is a real
 executable.
 Feed rule with a list of asdf-recognized package symbols to load into the
-binary.
-
-[slots]
-sourcefn (fn):
-  Preinitialized for this class; returns a list of forms to first load asdf,
-  then in turn additional asdf packages from rule and finally a form to have
-  sbcl create the executable.
-init-package (symbol):
-  Package to change to. This is neccessary because package names cannot be
-  quoted and furthermore without this, the toplevel function couldn't be defined
-  proplery.
-toplevel (symbol):
-  Name of the function to initally load after core has been loaded itself;
-  see http://www.sbcl.org/manual/Saving-a-Core-Image.html
-purify (boolean):
-  see http://www.sbcl.org/manual/Saving-a-Core-Image.html"))
+binary."))
