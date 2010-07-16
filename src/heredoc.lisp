@@ -1,12 +1,12 @@
-;;;; evol - heredoc.lisp
+;;;; cl-heredoc - heredoc.lisp
 ;;;; Copyright (C) 2010  Alexander Kahl <e-user@fsfe.org>
-;;;; This file is part of evol.
-;;;; evol is free software; you can redistribute it and/or modify
+;;;; This file is part of cl-heredoc.
+;;;; cl-heredoc is free software; you can redistribute it and/or modify
 ;;;; it under the terms of the GNU General Public License as published by
 ;;;; the Free Software Foundation; either version 3 of the License, or
 ;;;; (at your option) any later version.
 ;;;;
-;;;; evol is distributed in the hope that it will be useful,
+;;;; cl-heredoc is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;;;; GNU General Public License for more details.
@@ -14,7 +14,7 @@
 ;;;; You should have received a copy of the GNU General Public License
 ;;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(in-package :evol)
+(in-package :cl-heredoc)
 
 (defun read-until-match (stream terminal)
   "read-until-match stream terminal => string
@@ -52,8 +52,8 @@ EOF."
 Return string from STREAM up to the point where the string read first until CHAR
 is encountered. All evaluation is completely turned off so no quoting is
 required at all.
-Example: #>eof>Write whatever (you) \"want\"!eof => Write whatever (you) \"want\"!"
+Example:
+CL-USER> (set-dispatch-macro-character #\# #\> #'cl-heredoc:read-heredoc)
+CL-USER> #>eof>Write whatever (you) \"want\"!eof => Write whatever (you) \"want\"!"
   (declare (ignore arg))
   (read-until-match stream (read-until-match stream (string char))))
-
-(set-dispatch-macro-character #\# #\> #'read-heredoc)
