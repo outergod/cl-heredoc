@@ -2,7 +2,7 @@ cl-heredoc - Common Lisp reader heredoc dispatcher
 ==================================================
 cl-heredoc is an implementation of "here documents" [1] that allow the user to
 embed literal strings into code or data without any need for quoting, something
-that is missing both in ANSI CL and popular implementations.
+that is missing in both ANSI CL and popular implementations.
 
 cl-heredoc is completely written in Common Lisp and licensed under the
 GPLv3+[2]. Please see the file COPYING in the top-level directory of the
