@@ -45,7 +45,7 @@ Return character stored at INDEX in ring BUFFER."
 
 SETF for RBREF. If INDEX > LENGTH of BUFFER, start over at the beginning."
   (setf (char (ring-buffer-vector buffer)
-               (mod index (length (ring-buffer-vector buffer))))
+              (mod index (length (ring-buffer-vector buffer))))
         value))
 
 (defun ring-buffer-insert (buffer value)

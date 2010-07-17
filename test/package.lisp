@@ -1,5 +1,5 @@
 ;;;; cl-heredoc - package.lisp
-;;;; Copyright (C) 2009 2010  Alexander Kahl <e-user@fsfe.org>
+;;;; Copyright (C) 2009, 2010  Alexander Kahl <e-user@fsfe.org>
 ;;;; This file is part of cl-heredoc.
 ;;;; cl-heredoc is free software; you can redistribute it and/or modify
 ;;;; it under the terms of the GNU General Public License as published by

@@ -29,5 +29,7 @@
                 :depends-on (:cl-heredoc :stefil)
                 :components
                 ((:module "test"
+                          :serial t
                           :components
-                          ((:file "package")))))
+                          ((:file "package")
+                           (:file "ring-buffer")))))
