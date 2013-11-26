@@ -16,6 +16,9 @@
 
 (in-package :cl-heredoc-system)
 
-(defpackage :cl-heredoc
-  (:use :cl)
-  (:export :read-heredoc :read-until-match))
+(defpackage #:cl-heredoc
+  (:use #:cl)
+  (:export #:read-heredoc
+           #:read-until-match
+           #:enable-heredoc-syntax
+           #:disable-heredoc-syntax))
