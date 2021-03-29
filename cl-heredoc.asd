@@ -16,11 +16,6 @@
 
 (in-package :cl-user)
 
-(defpackage :cl-heredoc-system
-  (:use :cl :asdf))
-
-(in-package :cl-heredoc-system)
-
 (asdf:defsystem :cl-heredoc
                 :description "Common Lisp reader heredoc dispatcher"
                 :version "0.1.0"

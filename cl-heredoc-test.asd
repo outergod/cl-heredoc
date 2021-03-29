@@ -16,11 +16,6 @@
 
 (in-package :cl-user)
 
-(defpackage :cl-heredoc-test-system
-  (:use :cl :asdf))
-
-(in-package :cl-heredoc-test-system)
-
 (asdf:defsystem :cl-heredoc-test
                 :description "cl-heredoc test package."
                 :version "0.0.1"

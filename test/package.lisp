@@ -14,7 +14,7 @@
 ;;;; You should have received a copy of the GNU General Public License
 ;;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(in-package :cl-heredoc-test-system)
+(in-package :cl-user)
 
 (defpackage :cl-heredoc-test
   (:use :cl :cl-heredoc :stefil)
