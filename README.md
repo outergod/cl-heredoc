@@ -6,7 +6,7 @@ that is missing in both ANSI CL and popular implementations.
 
 cl-heredoc is completely written in Common Lisp and licensed under the
 [GPLv3+][2]. Please see the file COPYING in the top-level directory of the
-distribution tarbal or [the online version][2] if you didn't receive a copy
+distribution tarball or [the online version][2] if you didn't receive a copy
 along with this file.
 
 # Usage
