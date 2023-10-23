@@ -57,3 +57,35 @@ CL-USER> (set-dispatch-macro-character #\# #\> #'cl-heredoc:read-heredoc)
 CL-USER> #>eof>Write whatever (you) \"want\"!eof => Write whatever (you) \"want\"!"
   (declare (ignore arg))
   (read-until-match stream (read-until-match stream (string char))))
+
+(defvar *previous-readtables* nil
+  "A stack which holds the previous readtables that have been pushed
+here by ENABLE-HEREDOC-SYNTAX.")
+
+(defun %enable-heredoc-syntax ()
+  "Internal function used to enable reader syntax and store current
+readtable on stack."
+  (push *readtable*
+        *previous-readtables*)
+  (setq *readtable* (copy-readtable))
+  (set-dispatch-macro-character #\# #\> #'read-heredoc)
+  (values))
+
+(defun %disable-heredoc-syntax ()
+  "Internal function used to restore previous readtable." 
+  (if *previous-readtables*
+    (setq *readtable* (pop *previous-readtables*))
+    (setq *readtable* (copy-readtable nil)))
+  (values))
+
+(defmacro enable-heredoc-syntax ()
+  "Enable CL-HEREDOC reader syntax."
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+    (%enable-heredoc-syntax)))
+
+(defmacro disable-heredoc-syntax ()
+  "Restore readtable which was active before last call to
+ENABLE-HEREDOC-SYNTAX. If there was no such call, the standard
+readtable is used."
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+    (%disable-heredoc-syntax)))
